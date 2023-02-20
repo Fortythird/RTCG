@@ -28,7 +28,7 @@ public:
 	IDXGISwapChain* swapChain;
 	ID3D11Texture2D* backBuffer;
 	ID3D11RenderTargetView* rtv;
-	std::chrono::time_point<std::chrono::steady_clock> PrevTime;
+	std::chrono::time_point<std::chrono::steady_clock> PrevTime = std::chrono::steady_clock::now();;
 	float totalTime;
 
 

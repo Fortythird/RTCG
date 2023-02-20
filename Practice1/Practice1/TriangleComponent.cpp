@@ -38,41 +38,10 @@ void TriangleComponent::Initialize(Microsoft::WRL::ComPtr<ID3D11Device>* device,
 	auto res = (*device)->CreateRasterizerState(&rastDesc, &rastState);
 
 	context->RSSetState(rastState);
-
-		std::chrono::time_point<std::chrono::steady_clock> PrevTime = std::chrono::steady_clock::now();
-	float totalTime = 0;
-	unsigned int frameCount = 0;
-
-
-	//MSG msg = {};
-	//bool isExitRequested = false;
-	//while (!isExitRequested) {
-	//	// Handle the windows messages.
-	//	while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
-	//		TranslateMessage(&msg);
-	//		DispatchMessage(&msg);
-	//	}
-
-	//	// If windows signals to end the application then exit out.
-	//	if (msg.message == WM_QUIT) {
-	//		isExitRequested = true;
-	//	}
-
-
-	//	float color[] = { totalTime, 0.1f, 0.1f, 1.0f };
-	//	game->context->ClearRenderTargetView(game->rtv, color);
-
-	//	game->context->DrawIndexed(6, 0, 0);
-
-	//	game->context->OMSetRenderTargets(0, nullptr, nullptr);
-
-	//	game->swapChain->Present(1, /*DXGI_PRESENT_DO_NOT_WAIT*/ 0);
-	//}
-
 }
 
 void TriangleComponent::Draw(Microsoft::WRL::ComPtr<ID3D11Device>* device, ID3D11DeviceContext* context, ID3D11InputLayout* layout,
-	ID3D11RenderTargetView* rtv, float totalTime, float color[4])
+	ID3D11RenderTargetView* rtv, float totalTime)
 {
 
 	UINT strides[] = { 32 };
@@ -108,8 +77,6 @@ void TriangleComponent::Draw(Microsoft::WRL::ComPtr<ID3D11Device>* device, ID3D1
 	context->RSSetViewports(1, &viewport);
 
 	context->OMSetRenderTargets(1, &rtv, nullptr);
-
-	context->ClearRenderTargetView(rtv, color);
 
 	context->DrawIndexed(6, 0, 0);
 }

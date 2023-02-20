@@ -43,7 +43,7 @@ public:
 
 	void DestroyResources();
 	void Draw(Microsoft::WRL::ComPtr<ID3D11Device>* device, ID3D11DeviceContext* context, ID3D11InputLayout* layout,
-		ID3D11RenderTargetView* rtv, float totalTime, float color[4]);
+		ID3D11RenderTargetView* rtv, float totalTime);
 	void Update();
 
 private:

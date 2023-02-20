@@ -2,7 +2,8 @@
 
 void Game::Draw(float color[4])
 {
-	for (int i = 0; i < gcVector.size(); i++) gcVector[i]->Draw(&device, context, layout, rtv, totalTime, color);
+	context->ClearRenderTargetView(rtv, color);
+	for (int i = 0; i < gcVector.size(); i++) gcVector[i]->Draw(&device, context, layout, rtv, totalTime);
 }
 
 void Game::Update()
