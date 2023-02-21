@@ -1,6 +1,8 @@
-/*#pragma once
+#pragma once
 
-#include "Game.h"
+#include "Export.h"
+
+class Game;
 
 class GameComponent
 {
@@ -13,9 +15,10 @@ public:
 		game = _game;
 	}
 
-	void Draw();
-	void Update();
+	virtual void Initialize() = 0;
+	virtual void Draw(float deltaTime) = 0;
+	virtual void Update(float deltaTime) = 0;
+	virtual void DestroyResuorces() = 0;
 
 };
 
-*/

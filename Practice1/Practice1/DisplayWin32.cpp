@@ -1,8 +1,4 @@
-#include <windows.h>
-#include <iostream>
-#include <d3d.h>
-#include <d3d11.h>
-#include <iostream>
+#include "Export.h"
 #include "DisplayWin32.h"
 
 
@@ -15,8 +11,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
 		// If a key is pressed send it to the input object so it can record that state.
 		std::cout << "Key: " << static_cast<unsigned int>(wparam) << std::endl;
 
-		if (static_cast<unsigned int>(wparam) == 27) PostQuitMessage(0);
-		return 0;
+		if (static_cast<unsigned int>(wparam) == 27)
+		{
+			PostQuitMessage(0);
+			return 0;
+		}
 	}
 	default:
 	{
@@ -25,8 +24,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
 	}
 }
 
-void DisplayWin32::CreateScreen()
+void DisplayWin32::CreateScreen(int _screenWidth, int _screenHeight)
 {
+	screenHeight = _screenHeight;
+	screenWidth = _screenWidth;
+
 	LPCWSTR applicationName = L"MySuperFramework";
 
 	wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;

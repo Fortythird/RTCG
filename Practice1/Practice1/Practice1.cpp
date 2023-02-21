@@ -4,6 +4,6 @@
 
 void main()
 {
-	Game game;
+	Game game(800, 800);
 	game.Run();
 }

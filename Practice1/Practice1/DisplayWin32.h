@@ -8,13 +8,7 @@ public:
 	HWND hWnd;
 	WNDCLASSEX wc;
 
-	DisplayWin32(int _screenWidth, int _screenHeight)
-	{
-		screenHeight = _screenHeight;
-		screenWidth = _screenWidth;
-	}
-
-	void CreateScreen();
+	void CreateScreen(int _screenWidth, int _screenHeight);
 };
 
 
