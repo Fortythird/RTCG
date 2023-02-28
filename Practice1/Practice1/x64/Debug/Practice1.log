@@ -1,10 +1,4 @@
 ﻿  Game.cpp
-C:\Users\evgen\OneDrive\Документы\GitHub\RTCG\Practice1\Practice1\Game.cpp(126,73): warning C4267: '=': conversion from 'size_t' to 'UINT', possible loss of data
-C:\Users\evgen\OneDrive\Документы\GitHub\RTCG\Practice1\Practice1\Game.cpp(141,59): warning C4267: '=': conversion from 'size_t' to 'UINT', possible loss of data
-  Practice1.cpp
-C:\Users\evgen\OneDrive\Документы\GitHub\RTCG\Practice1\Practice1\Practice1.cpp(6,1): warning C4326: return type of 'main' should be 'int' instead of 'void'
-  TriangleComponent.cpp
-C:\Users\evgen\OneDrive\Документы\GitHub\RTCG\Practice1\Practice1\TriangleComponent.cpp(85,73): warning C4267: '=': conversion from 'size_t' to 'UINT', possible loss of data
-C:\Users\evgen\OneDrive\Документы\GitHub\RTCG\Practice1\Practice1\TriangleComponent.cpp(99,59): warning C4267: '=': conversion from 'size_t' to 'UINT', possible loss of data
-  Generating Code...
+C:\Users\evgen\OneDrive\Документы\GitHub\RTCG\Practice1\Practice1\Game.cpp(192,73): warning C4267: '=': conversion from 'size_t' to 'UINT', possible loss of data
+C:\Users\evgen\OneDrive\Документы\GitHub\RTCG\Practice1\Practice1\Game.cpp(207,59): warning C4267: '=': conversion from 'size_t' to 'UINT', possible loss of data
   Practice1.vcxproj -> C:\Users\evgen\OneDrive\Документы\GitHub\RTCG\Practice1\x64\Debug\Practice1.exe

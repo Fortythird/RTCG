@@ -1,11 +1,10 @@
 #pragma once
 
 #include "Export.h"
+#include "TriangleComponent.h"
 
 #include "DisplayWin32.h"
 #include <vector>
-#include "GameComponent.h"
-#include "TriangleComponent.h"
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -16,6 +15,7 @@
 class Game
 {
 public:
+	Game* instance;
 	ID3D11InputLayout* layout;
 	ID3D11Texture2D* backBuffer;
 	ID3D11DeviceContext* context;
@@ -45,6 +45,7 @@ public:
 	{
 		screenHeight = _height;
 		screenWidth = _width;
+		instance = this;
 	}
 
 	void PrepareResources();

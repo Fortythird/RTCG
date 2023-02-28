@@ -3,7 +3,8 @@
 
 void Game::Draw()
 {
-	//for (int i = 0; i < gcVector.size(); i++) gcVector[i]->Draw(device, context, rtv, totalTime);
+	for (int i = 0; i < gcVector.size(); i++) 
+		gcVector[i]->Draw(context, rtv);
 }
 
 void Game::Update()
@@ -13,7 +14,7 @@ void Game::Update()
 
 void Game::PrepareFrame()
 {
-	viewport = {};
+	/*viewport = {};
 	viewport.Width = static_cast<float>(screenWidth);
 	viewport.Height = static_cast<float>(screenHeight);
 	viewport.TopLeftX = 0;
@@ -23,9 +24,72 @@ void Game::PrepareFrame()
 
 	context->ClearState();
 
+	context->RSSetViewports(1, &viewport);
+
+	context->OMSetRenderTargets(1, &rtv, nullptr);
+
+	auto	curTime = std::chrono::steady_clock::now();
+	float	deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(curTime - PrevTime).count() / 1000000.0f;
+	PrevTime = curTime;
+
+	totalTime += deltaTime;
+	frameCount++;
+
+	if (totalTime > 1.0f) {
+		float fps = frameCount / totalTime;
+
+		totalTime -= 1.0f;
+
+		WCHAR text[256];
+		swprintf_s(text, TEXT("FPS: %f"), fps);
+		SetWindowText(hWnd, text);
+
+		frameCount = 0;
+	}
+	context->OMSetRenderTargets(1, &rtv, nullptr);
+
+	float color[] = { totalTime, 0.1f, 0.1f, 1.0f };
+	context->ClearRenderTargetView(rtv, color);*/
+	context->ClearState();
+
 	context->RSSetState(rastState);
 
+	D3D11_VIEWPORT viewport = {};
+	viewport.Width = static_cast<float>(screenWidth);
+	viewport.Height = static_cast<float>(screenHeight);
+	viewport.TopLeftX = 0;
+	viewport.TopLeftY = 0;
+	viewport.MinDepth = 0;
+	viewport.MaxDepth = 1.0f;
+
 	context->RSSetViewports(1, &viewport);
+
+	UINT strides[] = { 32 };
+	UINT offsets[] = { 0 };
+
+	auto	curTime = std::chrono::steady_clock::now();
+	float	deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(curTime - PrevTime).count() / 1000000.0f;
+	PrevTime = curTime;
+
+	totalTime += deltaTime;
+	frameCount++;
+
+	if (totalTime > 1.0f) {
+		float fps = frameCount / totalTime;
+
+		totalTime -= 1.0f;
+
+		WCHAR text[256];
+		swprintf_s(text, TEXT("FPS: %f"), fps);
+		SetWindowText(hWnd, text);
+
+		frameCount = 0;
+	}
+
+	context->OMSetRenderTargets(1, &rtv, nullptr);
+
+	float color[] = { totalTime, 0.1f, 0.1f, 1.0f };
+	context->ClearRenderTargetView(rtv, color);
 }
 
 void Game::Run()
@@ -41,6 +105,8 @@ void Game::Run()
 
 	//-------------------------------------TRIANGLE INIT--------------------------------------------------
 
+	//TriangleComponent trComp = TriangleComponent(device, rastState/*, layout*/);
+	//gcVector.push_back(&trComp);
 	ID3DBlob* errorVertexCode = nullptr;
 	auto res = D3DCompileFromFile(L"./Shaders/MyVeryFirstShader.hlsl",
 		nullptr /*macros*/,
@@ -177,27 +243,14 @@ void Game::Run()
 		if (msg.message == WM_QUIT) {
 			isExitRequested = true;
 		}
+		/*context->IASetInputLayout(layout);
+		context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		context->IASetIndexBuffer(ib, DXGI_FORMAT_R32_UINT, 0);
+		context->IASetVertexBuffers(0, 1, &vb, strides, offsets);
+		context->VSSetShader(vertexShader, nullptr, 0);
+		context->PSSetShader(pixelShader, nullptr, 0);*/
 
 		PrepareFrame();
-
-		auto	curTime = std::chrono::steady_clock::now();
-		float	deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(curTime - PrevTime).count() / 1000000.0f;
-		PrevTime = curTime;
-
-		totalTime += deltaTime;
-		frameCount++;
-
-		if (totalTime > 1.0f) {
-			float fps = frameCount / totalTime;
-
-			totalTime -= 1.0f;
-
-			WCHAR text[256];
-			swprintf_s(text, TEXT("FPS: %f"), fps);
-			SetWindowText(hWnd, text);
-
-			frameCount = 0;
-		}
 
 		context->IASetInputLayout(layout);
 		context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -206,10 +259,7 @@ void Game::Run()
 		context->VSSetShader(vertexShader, nullptr, 0);
 		context->PSSetShader(pixelShader, nullptr, 0);
 
-		context->OMSetRenderTargets(1, &rtv, nullptr);
-
-		float color[] = { totalTime, 0.1f, 0.1f, 1.0f };
-		context->ClearRenderTargetView(rtv, color);
+		Draw();
 
 		context->DrawIndexed(6, 0, 0);
 
