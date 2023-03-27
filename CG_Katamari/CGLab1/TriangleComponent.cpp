@@ -11,7 +11,6 @@ TriangleComponent::TriangleComponent()
 
 	compPosition = DirectX::SimpleMath::Vector3(0, 0, 0);
 
-	rotate = { 0.0f, 0.0f, 0.0f };
 	pos = { 0.0f, 0.0f, 0.0f };
 	offset = { 0.0f, 0.0f, 0.0f };
 	radius = 1.0f;
@@ -49,7 +48,6 @@ TriangleComponent::TriangleComponent(TriangleComponentParameters param)
 
 	compPosition = param.compPosition;
 
-	rotate = { 0.0f, 0.0f, 0.0f };
 	pos = { 0.0f, 0.0f, 0.0f };
 	offset = { 0.0f, 0.0f, 0.0f };
 	radius = 1.0f;
@@ -320,6 +318,13 @@ void TriangleComponent::Update(ID3D11DeviceContext* context, Camera* camera)
 
 	context->Unmap(constBuffer, 0);
 
+	if (parent != nullptr) if ((parent->pos - pos).Length() <= 1.2f && !isGot)
+	{
+		isGot = true;
+		DirectX::XMVECTOR det = DirectX::XMMatrixDeterminant(parent->GetModelMatrix());
+		pos = DirectX::XMVector3TransformCoord(pos, DirectX::XMMatrixInverse(&det, parent->GetModelMatrix()));
+		parent->rotate.Inverse(rotate);
+	}
 }
 
 void TriangleComponent::Draw(ID3D11DeviceContext* context) 
@@ -347,12 +352,13 @@ DirectX::SimpleMath::Matrix TriangleComponent::GetModelMatrix()
 {
 	using namespace DirectX::SimpleMath;
 	Matrix model = Matrix::Identity;
-	model *= Matrix::CreateFromYawPitchRoll(rotate * DirectX::XM_PI / 180);
+	model *= Matrix::CreateFromQuaternion(rotate);
 	model *= Matrix::CreateTranslation(pos);
+	
 
-	if (parent != nullptr)
+	if (parent != nullptr && isGot)
 	{
-		model *= Matrix::CreateTranslation(parent->GetModelMatrix().Translation());
+		model *= parent->GetModelMatrix();
 	}
 
 	return model;

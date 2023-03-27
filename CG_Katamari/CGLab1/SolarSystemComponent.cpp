@@ -9,11 +9,15 @@ SolarSystemComponent::SolarSystemComponent()
 void SolarSystemComponent::Init()
 {
 	Ball = new TriangleComponent(CreateSphere(1.0, DirectX::SimpleMath::Vector4(1.0f, 1.0f, 0.0f, 1.0f)));
-	Components.push_back(Ball);
+	Components.push_back(Ball);	
+
+	Planet = new TriangleComponent(CreateSphere(0.5, DirectX::SimpleMath::Vector4(1.0f, 0.0f, 0.0f, 1.0f), Ball));
+	Planet->pos = { 0.0, 3.0, 0.0 };
+	Components.push_back(Planet);
 
 	auto cameraInstance = new Camera(&Ball->pos);
 	cameraInstance->Initialize(
-		DirectX::SimpleMath::Vector3(0.0f, 0.0f, 5.0f),
+		DirectX::SimpleMath::Vector3(0.0f, 5.0f, 0.0f),
 		(1.57 / 2),
 		(1.57 / 2),
 		display.getScreenWidth(),
@@ -44,50 +48,37 @@ void SolarSystemComponent::Update()
 
 	angle += 0.1f;
 	
-	Ball->rotate = { 0, angle, 0 };
 	Ball->Update(Game::context, Game::camera.at(0));
-
-	//Ball->rotate = { 0, angle * 10.0f, 0 };
-	
-	/*Planet->Update(Game::context, Game::camera.at(0));
-
-	Sattelite->rotate = { 0, angle * -20.0f, 0 };
-	Sattelite->pos = {
-		Planet->parent->pos.x,
-		Sattelite->orbit * static_cast<float>(cos(angle * 7 * 3.14 / 40)),
-		Sattelite->orbit * static_cast<float>(sin(angle * 7 * 3.14 / 40))
-	};
-
-	std::cout << Sattelite->pos.x << "\n";
-
-	Sattelite->Update(Game::context, Game::camera.at(0));*/
+	Planet->Update(Game::context, Game::camera.at(0));
 
 	DirectX::SimpleMath::Vector3 deltaPos = DirectX::SimpleMath::Vector3::Zero;
 
 	if (cameraInstanceP->inputDeviceCameraInstance != nullptr)
 	{
-		if (cameraInstanceP->inputDeviceCameraInstance->IsKeyDown(Keys::W))
-		{
-			deltaPos += cameraInstanceP->camDirection;
-			//std::cout << cameraInstanceP->position.x << ' ' << cameraInstanceP->position.z << std::endl;
-			//std::cout << Ball->pos.x << " " << Ball->pos.z << std::endl;
-			std::cout << cameraInstanceP->position.x - Ball->pos.x << ' ' << cameraInstanceP->position.z - Ball->pos.z << std::endl;
-		}
+		if (cameraInstanceP->inputDeviceCameraInstance->IsKeyDown(Keys::W)) deltaPos += cameraInstanceP->camDirection;
 		if (cameraInstanceP->inputDeviceCameraInstance->IsKeyDown(Keys::S)) deltaPos -= cameraInstanceP->camDirection;
-		if (cameraInstanceP->inputDeviceCameraInstance->IsKeyDown(Keys::A)) deltaPos += { cameraInstanceP->camDirection.z, 0, -cameraInstanceP->camDirection.x };
-		if (cameraInstanceP->inputDeviceCameraInstance->IsKeyDown(Keys::D)) deltaPos -= { cameraInstanceP->camDirection.z, 0, -cameraInstanceP->camDirection.x };
+		if (cameraInstanceP->inputDeviceCameraInstance->IsKeyDown(Keys::A)) deltaPos -= cameraInstanceP->camDirection.Cross(DirectX::SimpleMath::Vector3(0, 0, 1));
+		if (cameraInstanceP->inputDeviceCameraInstance->IsKeyDown(Keys::D)) deltaPos += cameraInstanceP->camDirection.Cross(DirectX::SimpleMath::Vector3(0, 0, 1));
 	}
 
 	deltaPos.Normalize();
-	deltaPos /= 100;
+	deltaPos /= 20;
 
 	Ball->pos += deltaPos;
 
-	//std::cout << Ball->pos.x << " " << Ball->pos.y << std::endl;
+	float distance = deltaPos.Length();
+	float ang = distance;
+	if (distance) 
+	{
+		DirectX::SimpleMath::Vector3 deltaRotationAxis = DirectX::SimpleMath::Vector3(0.0f, 0.0f, 1.0f).Cross(deltaPos);
+		deltaRotationAxis.Normalize();
+
+		Ball->rotate *= DirectX::SimpleMath::Quaternion::CreateFromAxisAngle(deltaRotationAxis, ang);
+	}
 }
 
 
-TriangleComponent SolarSystemComponent::CreateSphere(float radius, DirectX::SimpleMath::Vector4 color, float _orbit, TriangleComponent* _parent)
+TriangleComponent SolarSystemComponent::CreateSphere(float radius, DirectX::SimpleMath::Vector4 color, TriangleComponent* _parent)
 {
 	TriangleComponentParameters sphere;
 	int parallels = 50;
@@ -211,7 +202,7 @@ TriangleComponent SolarSystemComponent::CreateSphere(float radius, DirectX::Simp
 	
 	TriangleComponent Sphere1(sphere);
 
-	Sphere1.orbit = _orbit;
+	//Sphere1.orbit = _orbit;
 	Sphere1.parent = _parent;
 	
 	return Sphere1;

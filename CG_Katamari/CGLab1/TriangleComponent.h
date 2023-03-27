@@ -21,17 +21,9 @@ struct ConstData
 	DirectX::SimpleMath::Matrix invertedWorldTransform;
 };
 
-struct LightData 
-{
-	DirectX::SimpleMath::Vector4 direction;
-	DirectX::SimpleMath::Vector4 color;
-	DirectX::SimpleMath::Vector4 viewerPosition;
-};
-
 class TriangleComponent : public GameComponent 
 {
 private:
-	DirectX::SimpleMath::Matrix GetModelMatrix();
 	
 	float radius;
 	
@@ -44,16 +36,17 @@ private:
 	UINT offsets[4];
 	ID3D11Buffer* vertexBuffer;
 	ID3D11Buffer* indexBuffer;
+	bool isGot = false;
+	DirectX::SimpleMath::Matrix parentMtrx;
 
 public:
+	DirectX::SimpleMath::Matrix GetModelMatrix();
 	TriangleComponent* parent;
-	float orbit;
 
 	ConstData constData;
 	ID3D11Buffer* constBuffer;
-	ID3D11Buffer* vBuffers[4];
 
-	DirectX::SimpleMath::Vector3 rotate;
+	DirectX::SimpleMath::Quaternion rotate = DirectX::SimpleMath::Quaternion::Identity;
 	DirectX::SimpleMath::Vector3 pos;
 	DirectX::SimpleMath::Vector3 offset;
 	DirectX::SimpleMath::Vector4* normals;

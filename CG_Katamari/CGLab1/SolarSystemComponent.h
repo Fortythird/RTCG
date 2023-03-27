@@ -10,6 +10,7 @@ private:
 	
 	TriangleComponentParameters PrepareRect(float xOff, float yOff);
 	TriangleComponentParameters PrepareCircle(float xOff, float yOff);
+	DirectX::SimpleMath::Vector3 rotationAxis = DirectX::SimpleMath::Vector3::Zero;
 
 	InputDevice inputDeviceInstance;
 	Camera* cameraInstanceP;
@@ -27,7 +28,7 @@ public:
 	TriangleComponent* Sattelite;
 
 	TriangleComponent CreateSphere(float radius, DirectX::SimpleMath::Vector4 color);
-	TriangleComponent CreateSphere(float radius, DirectX::SimpleMath::Vector4 color, float _orbit, TriangleComponent* _parent);
+	TriangleComponent CreateSphere(float radius, DirectX::SimpleMath::Vector4 color, TriangleComponent* _parent);
 
 	std::vector <TriangleComponent*> PlanetComponents;
 };
