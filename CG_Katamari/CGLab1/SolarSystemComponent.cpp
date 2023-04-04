@@ -19,12 +19,12 @@ void SolarSystemComponent::Init()
 	std::random_device rd;
 	std::mt19937 rng(rd());
 	std::uniform_int_distribution<int> ang_uni(0, 314);
-	std::uniform_int_distribution<int> rad_uni(3, 10);
+	std::uniform_int_distribution<int> rad_uni(3, 20);
 
 	for (int i = 0; i < Components.size(); i++)
 	{
 		int radius = rad_uni(rng);
-		float angle = ang_uni(rng) / 100.0f;
+		float angle = (float)ang_uni(rng);
 		Components[i]->SetPos({ radius * sin(angle), radius * cos(angle), 0.0});
 	}
 
@@ -354,14 +354,14 @@ TriangleComponent SolarSystemComponent::CreateFloor(const wchar_t* _texturePath)
 	_floor.numIndeces = 36;
 
 	_floor.points = new TriangleComponentParameters::Vertex[_floor.numPoints]{
-		DirectX::SimpleMath::Vector4(1000.0, 1000.0, 0.0, 1.0),		DirectX::SimpleMath::Vector2(1.0, 1.0),
-		DirectX::SimpleMath::Vector4(1000.0, -1000.0, 0.0, 1.0),	DirectX::SimpleMath::Vector2(1.0, -1.0),
-		DirectX::SimpleMath::Vector4(-1000.0, -1000.0, 0.0, 1.0),	DirectX::SimpleMath::Vector2(-1.0, -1.0),
-		DirectX::SimpleMath::Vector4(-1000.0, 1000.0, 0.0, 1.0),	DirectX::SimpleMath::Vector2(-1.0, 1.0),
-		DirectX::SimpleMath::Vector4(1000.0, 1000.0, -10.0, 1.0),	DirectX::SimpleMath::Vector2(1.0, 1.0),
-		DirectX::SimpleMath::Vector4(1000.0, -1000.0, -10.0, 1.0),	DirectX::SimpleMath::Vector2(1.0, 1.0),
-		DirectX::SimpleMath::Vector4(-1000.0, -1000.0, -10.0, 1.0), DirectX::SimpleMath::Vector2(1.0, 1.0),
-		DirectX::SimpleMath::Vector4(-1000.0, 1000.0, -10.0, 1.0),	DirectX::SimpleMath::Vector2(1.0, 1.0),
+		DirectX::SimpleMath::Vector4(20.0, 20.0, 0.0, 1.0),		DirectX::SimpleMath::Vector2(1.0, 1.0),
+		DirectX::SimpleMath::Vector4(20.0, -20.0, 0.0, 1.0),	DirectX::SimpleMath::Vector2(1.0, -1.0),
+		DirectX::SimpleMath::Vector4(-20.0, -20.0, 0.0, 1.0),	DirectX::SimpleMath::Vector2(-1.0, -1.0),
+		DirectX::SimpleMath::Vector4(-20.0, 20.0, 0.0, 1.0),	DirectX::SimpleMath::Vector2(-1.0, 1.0),
+		DirectX::SimpleMath::Vector4(20.0, 20.0, -10.0, 1.0),	DirectX::SimpleMath::Vector2(1.0, 1.0),
+		DirectX::SimpleMath::Vector4(20.0, -20.0, -10.0, 1.0),	DirectX::SimpleMath::Vector2(1.0, 1.0),
+		DirectX::SimpleMath::Vector4(-20.0, -20.0, -10.0, 1.0), DirectX::SimpleMath::Vector2(1.0, 1.0),
+		DirectX::SimpleMath::Vector4(-20.0, 20.0, -10.0, 1.0),	DirectX::SimpleMath::Vector2(1.0, 1.0),
 	};
 	_floor.indeces = new int[_floor.numIndeces] {
 		0, 1, 2, 2, 3, 0,
@@ -370,7 +370,6 @@ TriangleComponent SolarSystemComponent::CreateFloor(const wchar_t* _texturePath)
 		1, 5, 6, 6, 2, 1,
 		2, 6, 7, 7, 3, 2,
 		3, 7, 4, 4, 0, 3
-
 	};
 
 	TriangleComponent Floor(_floor, _texturePath);
@@ -405,7 +404,7 @@ TriangleComponent SolarSystemComponent::CreateMesh(float _radius, const std::str
 
 void SolarSystemComponent::ReadNode(aiNode* node, const aiScene* scene, std::vector<TriangleComponentParameters::Vertex>* _points, std::vector<int>* _indeces)
 {
-	std::cout << node->mName.data << " loaded" << std::endl;
+	if (!node->mNumMeshes) std::cout << node->mName.data << " loaded" << std::endl;
 	for (int j = 0; j < node->mNumMeshes; j++)
 	{
 		aiMesh* mesh = scene->mMeshes[node->mMeshes[j]];
