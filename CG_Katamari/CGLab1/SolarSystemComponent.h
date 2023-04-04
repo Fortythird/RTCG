@@ -1,6 +1,9 @@
 #pragma once
 
 #include "export.h"
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
+#include <assimp/Importer.hpp>
 #include "Game.h"
 
 class SolarSystemComponent : public Game
@@ -25,10 +28,15 @@ public:
 
 	TriangleComponent* Ball;
 	TriangleComponent* Planet;
-	TriangleComponent* Sattelite;
+	TriangleComponent* Rat;
+	TriangleComponent* floor;
+	TriangleComponent* Cheems;
 
-	TriangleComponent CreateSphere(float radius, DirectX::SimpleMath::Vector4 color);
-	TriangleComponent CreateSphere(float radius, DirectX::SimpleMath::Vector4 color, TriangleComponent* _parent);
+	TriangleComponent CreateSphere(float _radius, const wchar_t* _texturePath);
+	TriangleComponent CreateSphere(float _radius, TriangleComponent* _parent, const wchar_t* _texturePath);
+	TriangleComponent CreateFloor(const wchar_t* _texturePath);
+	TriangleComponent CreateMesh(float _radius, const std::string& _modelPath, TriangleComponent* _parent, const wchar_t* _texturePath);
+	void ReadNode(aiNode* node, const aiScene* scene, std::vector<TriangleComponentParameters::Vertex>* _points, std::vector<int>* _indeces);
 
 	std::vector <TriangleComponent*> PlanetComponents;
 };

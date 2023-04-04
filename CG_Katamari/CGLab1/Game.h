@@ -48,5 +48,5 @@ public:
 	void Run();
 
 	void SetBackgroundColor(float* color) { BGcolor = color; }
-	void CreateTriangle();
+	//void CreateTriangle(const);
 };

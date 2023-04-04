@@ -220,7 +220,7 @@ void Game::Draw()
 	}
 }
 
-void Game::CreateTriangle() 
+/*void Game::CreateTriangle()
 {
 	TriangleComponentParameters rect;
 	rect.numPoints = 8;
@@ -235,4 +235,4 @@ void Game::CreateTriangle()
 	auto localTriangleComponent = new TriangleComponent(rect);
 
 	Components.push_back(localTriangleComponent);
-}
+}*/

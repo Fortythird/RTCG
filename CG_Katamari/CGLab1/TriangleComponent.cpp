@@ -25,6 +25,8 @@ TriangleComponent::TriangleComponent()
 	vertexBuffer = nullptr;
 	indexBuffer = nullptr;
 	constBuffer = nullptr;
+	textureBuffer = nullptr;
+	samplerState = nullptr;
 	rastState = nullptr;
 	normals = nullptr;
 
@@ -39,7 +41,7 @@ TriangleComponent::TriangleComponent()
 	}
 }
 
-TriangleComponent::TriangleComponent(TriangleComponentParameters param)
+TriangleComponent::TriangleComponent(TriangleComponentParameters param, const wchar_t* _texturePath)
 {
 	parameters.points = param.points;
 	parameters.indeces = param.indeces;
@@ -52,6 +54,8 @@ TriangleComponent::TriangleComponent(TriangleComponentParameters param)
 	offset = { 0.0f, 0.0f, 0.0f };
 	radius = 1.0f;
 
+	texturePath = _texturePath;
+
 	parent = nullptr;
 	vertexBC = nullptr;
 	pixelBC = nullptr;
@@ -62,8 +66,11 @@ TriangleComponent::TriangleComponent(TriangleComponentParameters param)
 	vertexBuffer = nullptr;
 	indexBuffer = nullptr;
 	constBuffer = nullptr;
-
+	textureBuffer = nullptr;
+	samplerState = nullptr;
 	rastState = nullptr;
+
+	topologyType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
 	normals = new DirectX::SimpleMath::Vector4[parameters.numPoints / 2];
 
@@ -103,6 +110,8 @@ int TriangleComponent::Init(Microsoft::WRL::ComPtr<ID3D11Device> device, Display
 		{
 			MessageBox(display.getHWND(), L"../Shaders/ThirdExampleShader.hlsl", L"Missing Shader File", MB_OK);
 		}
+
+		__debugbreak();
 
 		return 0;
 	}
@@ -169,18 +178,9 @@ int TriangleComponent::Init(Microsoft::WRL::ComPtr<ID3D11Device> device, Display
 			0
 		},
 	   D3D11_INPUT_ELEMENT_DESC {
-			"COLOR",
+			"TEXCOORD",
 			0,
-			DXGI_FORMAT_R32G32B32A32_FLOAT,
-			0,
-			D3D11_APPEND_ALIGNED_ELEMENT,
-			D3D11_INPUT_PER_VERTEX_DATA,
-			0
-		},
-		D3D11_INPUT_ELEMENT_DESC {
-			"NORMAL",
-			0,
-			DXGI_FORMAT_R32G32B32A32_FLOAT,
+			DXGI_FORMAT_R32G32_FLOAT,
 			0,
 			D3D11_APPEND_ALIGNED_ELEMENT,
 			D3D11_INPUT_PER_VERTEX_DATA,
@@ -190,36 +190,24 @@ int TriangleComponent::Init(Microsoft::WRL::ComPtr<ID3D11Device> device, Display
 
 	device->CreateInputLayout(
 		inputElements,
-		3,
+		UINT(std::size(inputElements)),
 		vertexBC->GetBufferPointer(),
 		vertexBC->GetBufferSize(),
 		&layout
 	);
 
-	int size = parameters.numPoints / 2 * 3;
+	int size = parameters.numPoints;
 
 	D3D11_BUFFER_DESC vertexBufDesc = {};
 	vertexBufDesc.Usage = D3D11_USAGE_DEFAULT;
 	vertexBufDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	vertexBufDesc.CPUAccessFlags = 0;
 	vertexBufDesc.MiscFlags = 0;
-	vertexBufDesc.StructureByteStride = 0;
-	vertexBufDesc.ByteWidth = sizeof(DirectX::XMFLOAT4) * (size);
-
-	DirectX::XMFLOAT4* pointsNormals = new DirectX::XMFLOAT4[size];
-	int temp = 0;
-	int temp1 = 0;
-	for (int i = 0; i < size; i += 3) 
-	{
-		pointsNormals[i] = parameters.points[temp1];
-		pointsNormals[i + 1] = parameters.points[temp1 + 1];
-		temp1 += 2;
-		pointsNormals[i + 2] = normals[temp];
-		temp++;
-	}
+	vertexBufDesc.StructureByteStride = sizeof(TriangleComponentParameters::Vertex);
+	vertexBufDesc.ByteWidth = sizeof(TriangleComponentParameters::Vertex) * (size);
 
 	D3D11_SUBRESOURCE_DATA vertexData = {};
-	vertexData.pSysMem = pointsNormals;
+	vertexData.pSysMem = parameters.points;
 	vertexData.SysMemPitch = 0;
 	vertexData.SysMemSlicePitch = 0;
 	device->CreateBuffer(&vertexBufDesc, &vertexData, &vertexBuffer);
@@ -238,10 +226,10 @@ int TriangleComponent::Init(Microsoft::WRL::ComPtr<ID3D11Device> device, Display
 	indexData.SysMemSlicePitch = 0;
 	device->CreateBuffer(&indexBufDesc, &indexData, &indexBuffer);
 
-	strides[0] = 48;
-	strides[1] = 48;
-	strides[2] = 48;
-	strides[3] = 48;
+	strides[0] = sizeof(TriangleComponentParameters::Vertex);
+	strides[1] = sizeof(TriangleComponentParameters::Vertex);
+	strides[2] = sizeof(TriangleComponentParameters::Vertex);
+	strides[3] = sizeof(TriangleComponentParameters::Vertex);
 	offsets[0] = 0;
 	offsets[1] = 0;
 	offsets[2] = 0;
@@ -252,6 +240,14 @@ int TriangleComponent::Init(Microsoft::WRL::ComPtr<ID3D11Device> device, Display
 	rastDesc.CullMode = D3D11_CULL_NONE;
 	rastDesc.FillMode = D3D11_FILL_SOLID;
 	result = device->CreateRasterizerState(&rastDesc, &rastState);
+	result = CreateDDSTextureFromFile(device.Get(), texturePath, &textureBuffer, &textureView);
+
+	D3D11_SAMPLER_DESC SamplerDesc = {};
+	SamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	SamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	SamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	SamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	device->CreateSamplerState(&SamplerDesc, &samplerState);
 
 	return 0;
 }
@@ -318,12 +314,14 @@ void TriangleComponent::Update(ID3D11DeviceContext* context, Camera* camera)
 
 	context->Unmap(constBuffer, 0);
 
-	if (parent != nullptr) if ((parent->pos - pos).Length() <= 1.2f && !isGot)
+	if (parent != nullptr) if ((parent->pos - pos).Length() <= (parent->radius + radius) / 2 && !isGot)
 	{
 		isGot = true;
 		DirectX::XMVECTOR det = DirectX::XMMatrixDeterminant(parent->GetModelMatrix());
 		pos = DirectX::XMVector3TransformCoord(pos, DirectX::XMMatrixInverse(&det, parent->GetModelMatrix()));
 		parent->rotate.Inverse(rotate);
+		parent->radius += 0.2f; 
+		std::cout << "Got some stuff!" << std::endl;
 	}
 }
 
@@ -339,13 +337,15 @@ void TriangleComponent::Draw(ID3D11DeviceContext* context)
 		context->PSSetShader(pixelShader, nullptr, 0);
 		context->VSSetConstantBuffers(0, 1, &constBuffer);
 		context->RSSetState(rastState);
-
-		context->DrawIndexed(
-			parameters.numIndeces,
-			0,
-			0
-		);
+		context->PSSetShaderResources(0, 1, &textureView);
+		context->PSSetSamplers(0, 1, &samplerState);
+		context->DrawIndexed(parameters.numIndeces, 0, 0);
 	}
+}
+
+void TriangleComponent::SetPos(DirectX::SimpleMath::Vector3 _pos)
+{
+	pos = _pos;
 }
 
 DirectX::SimpleMath::Matrix TriangleComponent::GetModelMatrix()
