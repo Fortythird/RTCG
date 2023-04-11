@@ -118,6 +118,10 @@ int Game::PrepareResources()
 	depthTexDesc.SampleDesc = { 1, 0 };
 	res = device->CreateTexture2D(&depthTexDesc, nullptr, &depthBuffer);
 
+	if (FAILED(res))
+	{
+		std::cout << "Error while create texture 2D" << std::endl;
+	}
 
 	D3D11_DEPTH_STENCIL_VIEW_DESC depthStenDesc = {};
 	depthStenDesc.Format = DXGI_FORMAT_D32_FLOAT;

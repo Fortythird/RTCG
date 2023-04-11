@@ -233,7 +233,6 @@ TriangleComponent SolarSystemComponent::CreateSphere(float radius, const wchar_t
 	TriangleComponentParameters::Vertex* vertices = new TriangleComponentParameters::Vertex[sphere.numPoints];
 
 	sphere.numIndeces = parallels * meridians * 6 - 3 * 2 * meridians;
-	sphere.numPoints *= 2;
 	sphere.points = new TriangleComponentParameters::Vertex[sphere.numPoints];
 	sphere.indeces = new int[sphere.numIndeces];
 
@@ -262,6 +261,7 @@ TriangleComponent SolarSystemComponent::CreateSphere(float radius, const wchar_t
 			vertex1.position = DirectX::SimpleMath::Vector4(x, y, z, 1.0f);
 			vertex1.uv.x = teta1 / PI;
 			vertex1.uv.y = fi1 / (2 * PI);
+			vertex1.normal = vertex1.position;
 
 			x = radius * sin(teta1) * cos(fi2);
 			y = radius * sin(teta1) * sin(fi2);
@@ -269,6 +269,7 @@ TriangleComponent SolarSystemComponent::CreateSphere(float radius, const wchar_t
 			vertex2.position = DirectX::SimpleMath::Vector4(x, y, z, 1.0f);
 			vertex2.uv.x = teta1 / PI;
 			vertex2.uv.y = fi2 / (2 * PI);
+			vertex2.normal = vertex2.position;
 
 			x = radius * sin(teta2) * cos(fi2);
 			y = radius * sin(teta2) * sin(fi2);
@@ -276,6 +277,7 @@ TriangleComponent SolarSystemComponent::CreateSphere(float radius, const wchar_t
 			vertex3.position = DirectX::SimpleMath::Vector4(x, y, z, 1.0f);
 			vertex3.uv.x = teta2 / PI;
 			vertex3.uv.y = fi2 / (2 * PI);
+			vertex3.normal = vertex3.position;
 
 			x = radius * sin(teta2) * cos(fi1);
 			y = radius * sin(teta2) * sin(fi1);
@@ -283,6 +285,7 @@ TriangleComponent SolarSystemComponent::CreateSphere(float radius, const wchar_t
 			vertex4.position = DirectX::SimpleMath::Vector4(x, y, z, 1.0f);
 			vertex4.uv.x = teta2 / PI;
 			vertex4.uv.y = fi1 / (2 * PI);
+			vertex4.normal = vertex4.position;
 
 			if (i == 0)
 			{
@@ -354,14 +357,14 @@ TriangleComponent SolarSystemComponent::CreateFloor(const wchar_t* _texturePath)
 	_floor.numIndeces = 36;
 
 	_floor.points = new TriangleComponentParameters::Vertex[_floor.numPoints]{
-		DirectX::SimpleMath::Vector4(20.0, 20.0, 0.0, 1.0),		DirectX::SimpleMath::Vector2(1.0, 1.0),
-		DirectX::SimpleMath::Vector4(20.0, -20.0, 0.0, 1.0),	DirectX::SimpleMath::Vector2(1.0, -1.0),
-		DirectX::SimpleMath::Vector4(-20.0, -20.0, 0.0, 1.0),	DirectX::SimpleMath::Vector2(-1.0, -1.0),
-		DirectX::SimpleMath::Vector4(-20.0, 20.0, 0.0, 1.0),	DirectX::SimpleMath::Vector2(-1.0, 1.0),
-		DirectX::SimpleMath::Vector4(20.0, 20.0, -10.0, 1.0),	DirectX::SimpleMath::Vector2(1.0, 1.0),
-		DirectX::SimpleMath::Vector4(20.0, -20.0, -10.0, 1.0),	DirectX::SimpleMath::Vector2(1.0, 1.0),
-		DirectX::SimpleMath::Vector4(-20.0, -20.0, -10.0, 1.0), DirectX::SimpleMath::Vector2(1.0, 1.0),
-		DirectX::SimpleMath::Vector4(-20.0, 20.0, -10.0, 1.0),	DirectX::SimpleMath::Vector2(1.0, 1.0),
+		DirectX::SimpleMath::Vector4(20.0, 20.0, 0.0, 1.0),		DirectX::SimpleMath::Vector2(1.0, 1.0),		DirectX::SimpleMath::Vector4(0.0, 0.0, 1.0, 1.0),
+		DirectX::SimpleMath::Vector4(20.0, -20.0, 0.0, 1.0),	DirectX::SimpleMath::Vector2(1.0, -1.0),	DirectX::SimpleMath::Vector4(0.0, 0.0, 1.0, 1.0),
+		DirectX::SimpleMath::Vector4(-20.0, -20.0, 0.0, 1.0),	DirectX::SimpleMath::Vector2(-1.0, -1.0),	DirectX::SimpleMath::Vector4(0.0, 0.0, 1.0, 1.0),
+		DirectX::SimpleMath::Vector4(-20.0, 20.0, 0.0, 1.0),	DirectX::SimpleMath::Vector2(-1.0, 1.0),	DirectX::SimpleMath::Vector4(0.0, 0.0, 1.0, 1.0),
+		DirectX::SimpleMath::Vector4(20.0, 20.0, -10.0, 1.0),	DirectX::SimpleMath::Vector2(1.0, 1.0),		DirectX::SimpleMath::Vector4(0.0, 0.0, -1.0, 1.0),
+		DirectX::SimpleMath::Vector4(20.0, -20.0, -10.0, 1.0),	DirectX::SimpleMath::Vector2(1.0, 1.0),		DirectX::SimpleMath::Vector4(0.0, 0.0, -1.0, 1.0),
+		DirectX::SimpleMath::Vector4(-20.0, -20.0, -10.0, 1.0), DirectX::SimpleMath::Vector2(1.0, 1.0),		DirectX::SimpleMath::Vector4(0.0, 0.0, -1.0, 1.0),
+		DirectX::SimpleMath::Vector4(-20.0, 20.0, -10.0, 1.0),	DirectX::SimpleMath::Vector2(1.0, 1.0),		DirectX::SimpleMath::Vector4(0.0, 0.0, -1.0, 1.0)
 	};
 	_floor.indeces = new int[_floor.numIndeces] {
 		0, 1, 2, 2, 3, 0,
@@ -421,6 +424,13 @@ void SolarSystemComponent::ReadNode(aiNode* node, const aiScene* scene, std::vec
 			{
 				point.uv.y = mesh->mTextureCoords[0][i].x;
 				point.uv.x = mesh->mTextureCoords[0][i].y;
+			}
+
+			if (mesh->HasNormals())
+			{
+				point.normal.x = mesh->mNormals[i].x;
+				point.normal.y = mesh->mNormals[i].y;
+				point.normal.z = mesh->mNormals[i].z;
 			}
 
 			_points->push_back(point);

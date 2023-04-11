@@ -10,6 +10,7 @@ struct TriangleComponentParameters
 	{
 		DirectX::XMFLOAT4 position;
 		DirectX::XMFLOAT2 uv;
+		DirectX::XMFLOAT4 normal;
 	} *points;
 
 	int* indeces;
@@ -24,6 +25,12 @@ struct ConstData
 	DirectX::SimpleMath::Matrix worldViewProj;
 	DirectX::SimpleMath::Matrix world;
 	DirectX::SimpleMath::Matrix invertedWorldTransform;
+};
+
+struct LightData {
+	DirectX::SimpleMath::Vector4 direction;
+	DirectX::SimpleMath::Vector4 color;
+	DirectX::SimpleMath::Vector4 viewerPosition;
 };
 
 class TriangleComponent : public GameComponent 
@@ -53,6 +60,8 @@ public:
 
 	ConstData constData;
 	ID3D11Buffer* constBuffer;
+	LightData lightData;
+	ID3D11Buffer* lightBuffer;
 
 	DirectX::SimpleMath::Quaternion rotate = DirectX::SimpleMath::Quaternion::Identity;
 	DirectX::SimpleMath::Vector3 pos;
@@ -72,4 +81,5 @@ public:
 	void Draw(ID3D11DeviceContext* context);
 	void Update(ID3D11DeviceContext* context, Camera* camera) override;
 	void SetPos(DirectX::SimpleMath::Vector3 _pos) override;
+	void NormalsCalc();
 };
