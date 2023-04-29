@@ -25,7 +25,8 @@ void SolarSystemComponent::Init()
 	{
 		int radius = rad_uni(rng);
 		float angle = (float)ang_uni(rng);
-		Components[i]->SetPos({ radius * sin(angle), radius * cos(angle), 0.0});
+		Components[i]->SetPos({ radius * sin(angle), radius * cos(angle), 0.0 });
+		//Components[i]->SetPos({ 0.0, 0.0, 0.0 });
 	}
 
 	floor = new TriangleComponent(CreateFloor(L"../Textures/ground.dds"));
@@ -33,7 +34,7 @@ void SolarSystemComponent::Init()
 	Components.push_back(floor);
 
 	Components.push_back(Ball);
-	Ball->pos = { 0.0, 0.0, Ball->radius / 2 };
+	Ball->pos = { 0.0f, 0.0f, 1.0f };
 
 	auto cameraInstance = new Camera(&Ball->pos);
 	cameraInstance->Initialize(

@@ -31,6 +31,13 @@ struct LightData {
 	DirectX::SimpleMath::Vector4 direction;
 	DirectX::SimpleMath::Vector4 color;
 	DirectX::SimpleMath::Vector4 viewerPosition;
+	DirectX::SimpleMath::Matrix worldViewProj;
+};
+
+struct LightConstData {
+	DirectX::SimpleMath::Vector4 pos;
+	DirectX::SimpleMath::Matrix view;
+	DirectX::SimpleMath::Matrix projView;
 };
 
 class TriangleComponent : public GameComponent 
@@ -48,6 +55,7 @@ private:
 	ID3D11Resource* textureBuffer;
 	ID3D11ShaderResourceView* textureView;
 	ID3D11SamplerState* samplerState;
+	ID3D11SamplerState* depthSamplerState;
 	D3D_PRIMITIVE_TOPOLOGY topologyType;
 	const wchar_t* texturePath;
 	bool isGot = false;
@@ -60,7 +68,9 @@ public:
 
 	ConstData constData;
 	ID3D11Buffer* constBuffer;
+	ID3D11Buffer* lightConstBuffer;
 	LightData lightData;
+	LightConstData lightConstData;
 	ID3D11Buffer* lightBuffer;
 
 	DirectX::SimpleMath::Quaternion rotate = DirectX::SimpleMath::Quaternion::Identity;
@@ -78,7 +88,8 @@ public:
 
 	int Init(Microsoft::WRL::ComPtr<ID3D11Device> device, DisplayWin32 display, HRESULT result);
 	void DestroyResources();
-	void Draw(ID3D11DeviceContext* context);
+	void Draw(ID3D11DeviceContext* context, Camera* camera, ID3D11ShaderResourceView* resView);
+	void DrawShadow(ID3D11DeviceContext* context, Microsoft::WRL::ComPtr<ID3D11Device> device);
 	void Update(ID3D11DeviceContext* context, Camera* camera) override;
 	void SetPos(DirectX::SimpleMath::Vector3 _pos) override;
 	void NormalsCalc();

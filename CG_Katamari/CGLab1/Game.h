@@ -13,12 +13,21 @@ public:
 
 	DisplayWin32 display;
 	D3D11_VIEWPORT viewport;
+	D3D11_VIEWPORT shadowViewport;
 	IDXGISwapChain* swapChain;
 	ID3D11RenderTargetView* rtv;
 	TriangleComponent triangleComponent;
 	ID3D11Debug* debug;
-	ID3D11Texture2D* depthBuffer;
+	ID3D11Texture2D* shadowDepthTexture;
+	ID3D11Texture2D* sceneDepthTexture;
 	ID3D11DepthStencilView* depthView;
+	ID3D11DepthStencilView* shadowDepthView;
+	ID3D11ShaderResourceView* resView;
+	ID3D11DepthStencilState* depthState;
+	ID3D11SamplerState* samplerState;
+	ID3D11RasterizerState* drawRastState;
+	ID3D11RasterizerState* shadowRastState;
+	ID3D11Buffer* lightViewProjBuffer;
 
 	std::chrono::time_point<std::chrono::steady_clock> prevTime;
 
@@ -31,6 +40,7 @@ public:
 	void DestroyResources();
 	void PrepareFrame();
 	void Draw();
+	void DrawShadows();
 
 	float* BGcolor;
 
@@ -48,5 +58,4 @@ public:
 	void Run();
 
 	void SetBackgroundColor(float* color) { BGcolor = color; }
-	//void CreateTriangle(const);
 };

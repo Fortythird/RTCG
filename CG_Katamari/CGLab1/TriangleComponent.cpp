@@ -25,8 +25,10 @@ TriangleComponent::TriangleComponent()
 	vertexBuffer = nullptr;
 	indexBuffer = nullptr;
 	constBuffer = nullptr;
+	lightConstBuffer = nullptr;
 	textureBuffer = nullptr;
 	samplerState = nullptr;
+	depthSamplerState = nullptr;
 	rastState = nullptr;
 	lightBuffer = nullptr;
 	normals = nullptr;
@@ -67,8 +69,10 @@ TriangleComponent::TriangleComponent(TriangleComponentParameters param, const wc
 	vertexBuffer = nullptr;
 	indexBuffer = nullptr;
 	constBuffer = nullptr;
+	lightConstBuffer = nullptr;
 	textureBuffer = nullptr;
 	samplerState = nullptr;
+	depthSamplerState = nullptr;
 	lightBuffer = nullptr;
 	rastState = nullptr;
 
@@ -154,6 +158,19 @@ int TriangleComponent::Init(Microsoft::WRL::ComPtr<ID3D11Device> device, Display
 		std::cout << "Error while light buffer creating...";
 	}
 
+	D3D11_BUFFER_DESC lightConstBufDesc = {};
+	lightConstBufDesc.Usage = D3D11_USAGE_DYNAMIC;
+	lightConstBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	lightConstBufDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	lightConstBufDesc.MiscFlags = 0;
+	lightConstBufDesc.StructureByteStride = 0;
+	lightConstBufDesc.ByteWidth = sizeof(LightConstData);
+	result = device->CreateBuffer(&lightConstBufDesc, nullptr, &lightConstBuffer);
+	
+	if (FAILED(result)) {
+		std::cout << "Error while light const buffer creating...";
+	}
+
 	ID3DBlob* errorPixelCode;
 	result = D3DCompileFromFile(
 		L"../Shaders/ThirdExampleShader.hlsl",
@@ -229,18 +246,6 @@ int TriangleComponent::Init(Microsoft::WRL::ComPtr<ID3D11Device> device, Display
 	vertexBufDesc.StructureByteStride = sizeof(TriangleComponentParameters::Vertex);
 	vertexBufDesc.ByteWidth = sizeof(TriangleComponentParameters::Vertex) * (size);
 
-	/*DirectX::XMFLOAT4* pointsNormals = new DirectX::XMFLOAT4[size];
-	int temp = 0;
-	int temp1 = 0;
-	for (int i = 0; i < size; i += 3) 
-	{
-		pointsNormals[i] = parameters.points[temp1].position;
-		pointsNormals[i + 1] = parameters.points[temp1 + 1].position;
-		temp1 += 2;
-		pointsNormals[i + 2] = normals[temp];
-		temp++;
-	}*/
-
 	D3D11_SUBRESOURCE_DATA vertexData = {};
 	vertexData.pSysMem = parameters.points;
 	vertexData.SysMemPitch = 0;
@@ -293,6 +298,12 @@ int TriangleComponent::Init(Microsoft::WRL::ComPtr<ID3D11Device> device, Display
 	SamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
 	device->CreateSamplerState(&SamplerDesc, &samplerState);
 
+	D3D11_SAMPLER_DESC DepthSamplerDesc = {};
+	DepthSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	DepthSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	DepthSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	device->CreateSamplerState(&DepthSamplerDesc, &depthSamplerState);
+
 	return 0;
 }
 
@@ -338,6 +349,11 @@ void TriangleComponent::DestroyResources()
 		constBuffer->Release();
 	}
 
+	if (lightConstBuffer != nullptr)
+	{
+		lightConstBuffer->Release();
+	}
+
 	if (lightBuffer != nullptr)
 	{
 		lightBuffer->Release();
@@ -348,9 +364,146 @@ void TriangleComponent::DestroyResources()
 
 void TriangleComponent::Update(ID3D11DeviceContext* context, Camera* camera) 
 {
+	/*//constData.worldViewProj = GetModelMatrix() * camera->viewMatrix * camera->projectionMatrix;
+	//constData.worldViewProj = constData.worldViewProj.Transpose();
+
+	constData.world = DirectX::SimpleMath::Matrix::CreateTranslation(parameters.compPosition);
+	constData.world = GetModelMatrix().Transpose();
+	constData.invertedWorldTransform = GetModelMatrix().Transpose().Invert().Transpose();
+
+	D3D11_MAPPED_SUBRESOURCE subresourse = {};
+	context->Map(
+		constBuffer,
+		0,
+		D3D11_MAP_WRITE_DISCARD,
+		0,
+		&subresourse
+	);
+
+	memcpy(
+		reinterpret_cast<float*>(subresourse.pData),
+		&constData,
+		sizeof(ConstData)
+	);
+
+	context->Unmap(constBuffer, 0);*/
+
+	lightData.direction = DirectX::SimpleMath::Vector4(2.0f, 2.0f, 1.0f, 1.0f);
+	lightData.color = DirectX::SimpleMath::Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+	lightData.viewerPosition = DirectX::SimpleMath::Vector4(camera->position.x, camera->position.y, camera->position.z, 1.0f);
+
+	auto dir = DirectX::SimpleMath::Vector3(lightData.direction.x, lightData.direction.y, lightData.direction.z);
+	dir.Normalize();
+	float destination = 60.0f;
+	lightData.worldViewProj = /*GetModelMatrix() */ DirectX::SimpleMath::Matrix::CreateLookAt(dir * destination, dir * destination - dir, DirectX::SimpleMath::Vector3(0, 0, 1))
+		* DirectX::SimpleMath::Matrix::CreateOrthographic(60, 60, 0.1f, 150.0f);
+	lightData.worldViewProj = lightData.worldViewProj.Transpose();
+
+	D3D11_MAPPED_SUBRESOURCE subresourse2 = {};
+	context->Map(
+		lightBuffer,
+		0,
+		D3D11_MAP_WRITE_DISCARD,
+		0,
+		&subresourse2
+	);
+
+	memcpy(
+		reinterpret_cast<float*>(subresourse2.pData),
+		&lightData,
+		sizeof(LightData)
+	);
+	context->Unmap(lightBuffer, 0);
+
+	if (parent != nullptr) if ((parent->pos - pos).Length() <= radius * 1.5f && !isGot)
+	{
+		isGot = true;
+		DirectX::XMVECTOR det = DirectX::XMMatrixDeterminant(parent->GetModelMatrix());
+		pos = DirectX::XMVector3TransformCoord(pos, DirectX::XMMatrixInverse(&det, parent->GetModelMatrix()));
+		parent->rotate.Inverse(rotate);
+		parent->radius += 0.2f;
+		//parent->pos += DirectX::SimpleMath::Vector3(0.0f, 0.0f, 0.2f);
+		std::cout << "Got some stuff!" << std::endl;
+	}
+}
+
+void TriangleComponent::Draw(ID3D11DeviceContext* context, Camera* camera, ID3D11ShaderResourceView* resView)
+{
+	auto dir = DirectX::SimpleMath::Vector3(lightData.direction.x, lightData.direction.y, lightData.direction.z);
+	dir.Normalize();
+	float destination = 60.0f;
+	lightConstData.pos = DirectX::SimpleMath::Vector4(dir.x * destination, dir.y * destination, dir.z * destination, 1.0f);
+	lightConstData.view = DirectX::SimpleMath::Matrix::CreateLookAt(dir * destination, dir * destination - dir, DirectX::SimpleMath::Vector3(0, 0, 1));
+	lightConstData.projView = lightConstData.view * DirectX::SimpleMath::Matrix::CreateOrthographic(60.0f, 60.0f, 0.1f, 150.0f);
+
+	D3D11_MAPPED_SUBRESOURCE subresourse = {};
+	context->Map(
+		lightConstBuffer,
+		0,
+		D3D11_MAP_WRITE_DISCARD,
+		0,
+		&subresourse
+	);
+
+	memcpy(
+		reinterpret_cast<float*>(subresourse.pData),
+		&lightConstData,
+		sizeof(LightConstData)
+	);
+	context->Unmap(lightConstBuffer, 0);
+
 	constData.worldViewProj = GetModelMatrix() * camera->viewMatrix * camera->projectionMatrix;
 	constData.worldViewProj = constData.worldViewProj.Transpose();
 
+	constData.world = DirectX::SimpleMath::Matrix::CreateTranslation(parameters.compPosition);
+	constData.world = GetModelMatrix().Transpose();
+	constData.invertedWorldTransform = GetModelMatrix().Transpose().Invert().Transpose();
+
+	D3D11_MAPPED_SUBRESOURCE subresourse2 = {};
+	context->Map(
+		constBuffer,
+		0,
+		D3D11_MAP_WRITE_DISCARD,
+		0,
+		&subresourse2
+	);
+
+	memcpy(
+		reinterpret_cast<float*>(subresourse2.pData),
+		&constData,
+		sizeof(ConstData)
+	);
+
+	context->Unmap(constBuffer, 0);
+
+	if (parameters.numIndeces != 0)
+	{
+		context->IASetInputLayout(layout);
+		context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+		context->IASetVertexBuffers(0, 1, &vertexBuffer, strides, offsets);
+		context->VSSetShader(vertexShader, nullptr, 0);
+		context->PSSetShader(pixelShader, nullptr, 0);
+		context->VSSetConstantBuffers(0, 1, &constBuffer);
+		context->PSSetConstantBuffers(1, 1, &lightBuffer);
+		context->PSSetConstantBuffers(2, 1, &lightConstBuffer);
+		context->PSSetShaderResources(0, 1, &textureView);
+		context->PSSetShaderResources(1, 1, &resView);
+		context->PSSetSamplers(0, 1, &samplerState);
+		context->PSSetSamplers(1, 1, &depthSamplerState);
+		context->RSSetState(rastState);
+		context->DrawIndexed(parameters.numIndeces, 0, 0);
+	}
+}
+
+void TriangleComponent::DrawShadow(ID3D11DeviceContext* context, Microsoft::WRL::ComPtr<ID3D11Device> device)
+{
+	auto dir = DirectX::SimpleMath::Vector3(lightData.direction.x, lightData.direction.y, lightData.direction.z);
+	dir.Normalize();
+	float destination = 60.0f;
+	constData.worldViewProj = GetModelMatrix() * DirectX::SimpleMath::Matrix::CreateLookAt(dir * destination, dir * destination - dir, DirectX::SimpleMath::Vector3(0, 0, 1))
+		* DirectX::SimpleMath::Matrix::CreateOrthographic(60, 60, 0.1f, 150.0f);
+	constData.worldViewProj = constData.worldViewProj.Transpose();
 	constData.world = DirectX::SimpleMath::Matrix::CreateTranslation(parameters.compPosition);
 	constData.world = GetModelMatrix().Transpose();
 	constData.invertedWorldTransform = GetModelMatrix().Transpose().Invert().Transpose();
@@ -372,56 +525,22 @@ void TriangleComponent::Update(ID3D11DeviceContext* context, Camera* camera)
 
 	context->Unmap(constBuffer, 0);
 
-	lightData.direction = DirectX::SimpleMath::Vector4(10.0f, 0.0f, 10.0f, 1.0f);
-	lightData.color = DirectX::SimpleMath::Vector4(1.0f, 1.0f, 1.0f, 1.0f);
-	lightData.viewerPosition = DirectX::SimpleMath::Vector4(camera->position.x, camera->position.y, camera->position.z, 1.0f);
-
-	D3D11_MAPPED_SUBRESOURCE subresourse2 = {};
-	context->Map(
-		lightBuffer,
-		0,
-		D3D11_MAP_WRITE_DISCARD,
-		0,
-		&subresourse2
-	);
-
-	//std::cout << lightData.color.x << lightData.color.y << lightData.color.z << std::endl;
-
-	memcpy(
-		reinterpret_cast<float*>(subresourse2.pData),
-		&lightData,
-		sizeof(LightData)
-	);
-	context->Unmap(lightBuffer, 0);
-
-	if (parent != nullptr) if ((parent->pos - pos).Length() <= (parent->radius + radius) / 2 && !isGot)
-	{
-		isGot = true;
-		DirectX::XMVECTOR det = DirectX::XMMatrixDeterminant(parent->GetModelMatrix());
-		pos = DirectX::XMVector3TransformCoord(pos, DirectX::XMMatrixInverse(&det, parent->GetModelMatrix()));
-		parent->rotate.Inverse(rotate);
-		parent->radius += 0.2f;
-		std::cout << "Got some stuff!" << std::endl;
-	}
-}
-
-void TriangleComponent::Draw(ID3D11DeviceContext* context) 
-{
-	if (parameters.numIndeces != 0)
-	{
-		context->IASetInputLayout(layout);
-		context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-		context->IASetVertexBuffers(0, 1, &vertexBuffer, strides, offsets);
-		context->VSSetShader(vertexShader, nullptr, 0);
-		context->PSSetShader(pixelShader, nullptr, 0);
-		context->VSSetConstantBuffers(0, 1, &constBuffer);
-		context->PSSetConstantBuffers(1, 1, &lightBuffer);
-		context->PSSetShaderResources(0, 1, &textureView);
-		context->PSSetSamplers(0, 1, &samplerState);
-		context->RSSetState(rastState);
-		context->DrawIndexed(parameters.numIndeces, 0, 0);
-	}
+	context->IASetInputLayout(layout);
+	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	context->IASetVertexBuffers(0, 1, &vertexBuffer, strides, offsets);
+	context->VSSetShader(vertexShader, nullptr, 0);
+	//context->PSSetShader(pixelShader, nullptr, 0);
+	//context->PSSetShader(nullptr, nullptr, 0);
+	context->VSSetConstantBuffers(0, 1, &constBuffer);
+	//context->PSSetConstantBuffers(1, 1, &lightBuffer);
+	//context->PSSetConstantBuffers(1, 0, nullptr);
+	//context->PSSetShaderResources(0, 1, &textureView);
+	//context->PSSetShaderResources(1, 1, nullptr);
+	//context->PSSetSamplers(0, 1, &samplerState);
+	//context->PSSetSamplers(1, 1, nullptr);
+	//context->RSSetState(rastState);
+	context->DrawIndexed(parameters.numIndeces, 0, 0);
 }
 
 void TriangleComponent::SetPos(DirectX::SimpleMath::Vector3 _pos)

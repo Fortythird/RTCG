@@ -10,8 +10,12 @@ Game::Game()
 	debug = nullptr;
 	BGcolor = new float[4] { 0.0f, 0.0f, 0.0f, 0.0f };
 
-	depthBuffer = nullptr;
+	shadowDepthTexture = nullptr;
+	sceneDepthTexture = nullptr;
 	depthView = nullptr;
+	shadowDepthView = nullptr;
+	resView = nullptr;
+	shadowRastState = nullptr;
 }
 
 void Game::Init() 
@@ -44,12 +48,10 @@ void Game::Run()
 
 		PrepareFrame();
 
-		context->RSSetViewports(1, &viewport);
-		context->OMSetRenderTargets(1, &rtv, depthView);
-
 		Update();
+		DrawShadows();
 		Draw();
-
+		
 		swapChain->Present(1, 0);
 	}
 
@@ -58,7 +60,7 @@ void Game::Run()
 
 int Game::PrepareResources() 
 {
-	D3D_FEATURE_LEVEL featureLevel[] = { D3D_FEATURE_LEVEL_11_1 };
+	D3D_FEATURE_LEVEL featureLevel[] = {D3D_FEATURE_LEVEL_11_1};
 
 	DXGI_SWAP_CHAIN_DESC swapDesc = {};
 	swapDesc.BufferCount = 2;
@@ -85,6 +87,14 @@ int Game::PrepareResources()
 	viewport.MinDepth = 0;
 	viewport.MaxDepth = 1.0f;
 
+	shadowViewport = {};
+	shadowViewport.Width = 5000;
+	shadowViewport.Height = 5000;
+	shadowViewport.TopLeftX = 0;
+	shadowViewport.TopLeftY = 0;
+	shadowViewport.MinDepth = 0;
+	shadowViewport.MaxDepth = 1.0f;
+
 	HRESULT res = D3D11CreateDeviceAndSwapChain(
 		nullptr,
 		D3D_DRIVER_TYPE_HARDWARE,
@@ -106,28 +116,93 @@ int Game::PrepareResources()
 	}
 
 	D3D11_TEXTURE2D_DESC depthTexDesc = {};
+	depthTexDesc.Format = DXGI_FORMAT_R32_TYPELESS;
 	depthTexDesc.ArraySize = 1; 
 	depthTexDesc.MipLevels = 1;
-	depthTexDesc.Format = DXGI_FORMAT_R32_TYPELESS; 
+	//depthTexDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	depthTexDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_DEPTH_STENCIL;
 	depthTexDesc.CPUAccessFlags = 0;
 	depthTexDesc.MiscFlags = 0;
 	depthTexDesc.Usage = D3D11_USAGE_DEFAULT;
-	depthTexDesc.Width = display.getScreenWidth();
-	depthTexDesc.Height = display.getScreenHeight();
+	depthTexDesc.Width = 5000;
+	depthTexDesc.Height = 5000;
 	depthTexDesc.SampleDesc = { 1, 0 };
-	res = device->CreateTexture2D(&depthTexDesc, nullptr, &depthBuffer);
+	res = device->CreateTexture2D(&depthTexDesc, nullptr, &shadowDepthTexture);
+	depthTexDesc.Width = 800;
+	depthTexDesc.Height = 800;
+	res = device->CreateTexture2D(&depthTexDesc, nullptr, &sceneDepthTexture);
 
 	if (FAILED(res))
 	{
-		std::cout << "Error while create texture 2D" << std::endl;
+		std::cout << "Error while creating texture 2D" << std::endl;
 	}
 
 	D3D11_DEPTH_STENCIL_VIEW_DESC depthStenDesc = {};
 	depthStenDesc.Format = DXGI_FORMAT_D32_FLOAT;
 	depthStenDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-	depthStenDesc.Flags = 0;
-	res = device->CreateDepthStencilView(depthBuffer, &depthStenDesc, &depthView);
+	depthStenDesc.Texture2D.MipSlice = 0;
+	//depthStenDesc.Flags = 0;
+	res = device->CreateDepthStencilView(sceneDepthTexture, &depthStenDesc, &depthView);
+
+	if (FAILED(res))
+	{
+		std::cout << "Error while creating scene depth stencil view" << std::endl;
+	}
+
+	res = device->CreateDepthStencilView(shadowDepthTexture, &depthStenDesc, &shadowDepthView);
+
+	if (FAILED(res))
+	{
+		std::cout << "Error while creating shadow depth stencil view" << std::endl;
+	}
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC shaderResViewDesc = {};
+	shaderResViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	shaderResViewDesc.Format = DXGI_FORMAT_R32_FLOAT;
+	shaderResViewDesc.Texture2D.MipLevels = 1;
+	res = device->CreateShaderResourceView(shadowDepthTexture, &shaderResViewDesc, &resView);
+
+	if (FAILED(res))
+	{
+		std::cout << "Error while creating shader resource view" << std::endl;
+	}
+
+	/*D3D11_SAMPLER_DESC comparisonSamplerDesc = {};
+	comparisonSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+	comparisonSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
+	comparisonSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
+	comparisonSamplerDesc.BorderColor[0] = 1.0f;
+	comparisonSamplerDesc.BorderColor[1] = 1.0f;
+	comparisonSamplerDesc.BorderColor[2] = 1.0f;
+	comparisonSamplerDesc.BorderColor[3] = 1.0f;
+	comparisonSamplerDesc.MinLOD = 0.f;
+	comparisonSamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	comparisonSamplerDesc.MipLODBias = 0.f;
+	comparisonSamplerDesc.MaxAnisotropy = 0;
+	comparisonSamplerDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
+	comparisonSamplerDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
+	res = device->CreateSamplerState(&comparisonSamplerDesc, &samplerState);
+
+	D3D11_RASTERIZER_DESC drawRenderStateDesc = {};
+	drawRenderStateDesc.CullMode = D3D11_CULL_BACK;
+	drawRenderStateDesc.FillMode = D3D11_FILL_SOLID;
+	drawRenderStateDesc.DepthClipEnable = true;
+	res = device->CreateRasterizerState(&drawRenderStateDesc, &drawRastState);
+	
+	D3D11_RASTERIZER_DESC shadowRenderStateDesc = {};
+	shadowRenderStateDesc.CullMode = D3D11_CULL_FRONT;
+	shadowRenderStateDesc.FillMode = D3D11_FILL_SOLID;
+	shadowRenderStateDesc.DepthClipEnable = true;
+	res = device->CreateRasterizerState(&shadowRenderStateDesc, &shadowRastState);
+
+	/*D3D11_DEPTH_STENCIL_DESC depthStateDesc = {};
+	depthStateDesc.DepthEnable = true;
+	depthStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	depthStateDesc.DepthFunc = D3D11_COMPARISON_LESS;
+	depthStateDesc.StencilEnable = false;
+
+	res = device->CreateDepthStencilState(&depthStateDesc, &depthState);
+	context->OMSetDepthStencilState(depthState, 0);*/
 
 	ID3D11Texture2D* backTexture;
 	res = swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&backTexture);	// __uuidof(ID3D11Texture2D)
@@ -169,14 +244,25 @@ void Game::DestroyResources()
 		debug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
 	}
 
-	if (depthBuffer) 
+	if (shadowDepthTexture) 
 	{
-		depthBuffer->Release();
+		shadowDepthTexture->Release();
+	}
+
+	if (sceneDepthTexture)
+	{
+		sceneDepthTexture->Release();
 	}
 
 	if (depthView != nullptr) 
 	{
 		depthView->Release();
+
+	}
+	
+	if (shadowDepthView != nullptr) 
+	{
+		shadowDepthView->Release();
 
 	}
 }
@@ -200,6 +286,8 @@ void Game::PrepareFrame()
 
 	context->ClearState();
 	context->ClearDepthStencilView(depthView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	context->ClearDepthStencilView(shadowDepthView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	context->ClearRenderTargetView(rtv, BGcolor);
 }
 
 void Game::Update() 
@@ -210,33 +298,44 @@ void Game::Update()
 		display.getScreenHeight()
 	);
 
-	for (int i = 0; i < Components.size(); i++) {
+	for (int i = 0; i < Components.size(); i++) 
+	{
 		Components[i]->Update(context, camera.at(0));
 	}
 }
 
 void Game::Draw() 
 {
-	context->ClearRenderTargetView(rtv, BGcolor);
+	camera.at(0)->Update(
+		deltaTime,
+		display.getScreenWidth(),
+		display.getScreenHeight()
+	);
 
-	for (int i = 0; i < Components.size(); i++) {
-		Components[i]->Draw(context);
+	context->ClearRenderTargetView(rtv, BGcolor);
+	
+	context->RSSetViewports(1, &viewport);
+	context->OMSetRenderTargets(1, &rtv, depthView);
+
+	for (int i = 0; i < Components.size(); i++)
+	{
+		Components[i]->Draw(context, camera.at(0), resView);
 	}
+
+	ID3D11RenderTargetView* nullrtv[8] = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
+	context->OMSetRenderTargets(1, nullrtv, nullptr);
 }
 
-/*void Game::CreateTriangle()
+void Game::DrawShadows()
 {
-	TriangleComponentParameters rect;
-	rect.numPoints = 8;
-	rect.numIndeces = 6;
-	rect.points = new DirectX::XMFLOAT4[rect.numPoints]{
-		DirectX::XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f),	DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f),
-		DirectX::XMFLOAT4(-0.5f, -0.5f, 0.5f, 1.0f),DirectX::XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f),
-		DirectX::XMFLOAT4(0.5f, -0.5f, 0.5f, 1.0f),	DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f),
-		DirectX::XMFLOAT4(-0.5f, 0.5f, 0.5f, 1.0f),	DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
-	};
+	context->RSSetViewports(1, &shadowViewport);
+	ID3D11RenderTargetView* nullrtv[8] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+	context->OMSetRenderTargets(1, nullrtv, shadowDepthView);
 
-	auto localTriangleComponent = new TriangleComponent(rect);
-
-	Components.push_back(localTriangleComponent);
-}*/
+	for (int i = 0; i < Components.size(); i++)
+	{
+		Components[i]->DrawShadow(context, device);
+	}	
+	
+	context->ClearState();
+}
